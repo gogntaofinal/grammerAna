@@ -46,14 +46,13 @@ int prod(){
      while(scanf("%s", ele) != EOF){
          strcpy(gramOldSet[i++].formula, ele);
      }
-     for(j = 0; j < i; ++j){
-         printf("%s\n", gramOldSet[j].formula);
-     }
+//     for(j = 0; j < i; ++j){
+//         printf("%s\n", gramOldSet[j].formula);
+//     }
      return i;
 }
 
 /*
-
 该函数是用来统计终结符和非终结符的，暂时先手动写出
 已知的终结符，方便处理， 以后在考虑具体实现
  
@@ -71,24 +70,40 @@ int getAllSymbol(){
 }
 */
 
-int isTer(char ch){
+bool isTer(char ch){
     int i = 0, len = strlen(terSymbol);
     for(i = 0; i < len; ++i){
         if(ch == terSymbol[i]){
-            return 1;
+            return true;
         }
     }
-    return 0;
+	return false;    
 }
 
 int isNoTer(char ch){
     int i = 0, len = strlen(non_ter);
     for(i = 0; i < len; ++i){
-        if(ch == non_ter){
+        if(ch == non_ter[i]){
             return i;
         }
     }
-    return -1;
+    //return -1;
+}
+
+void trim(char *s){
+	int i, j, k, len = strlen(s);
+	int tag = len;
+	for(i = len - 1; i > 0; --i){
+		for(j = i - 1; j >= 0; --j){
+			if(s[i] == s[j]){
+				tag --;
+				for(k = j; k < len; ++k){
+					s[k] = s[k+1]; 
+				}
+			}
+		}
+	}
+	s[tag] = '\0';
 }
 
 int findFirst(char target){
@@ -99,50 +114,78 @@ int findFirst(char target){
     int tag = 0, tag1 = 0;    //用来表示是否存在$
     int seti = isNoTer(target);   //用来标示是哪个非终结符的first集
     int k = 0;      //用来表示first集的遍历
+    char temp;
     for(i = 0; i < pro_num; ++i){
-        strcpy(ele, terSymbol[i].formula);
+        strcpy(ele, gramOldSet[i].formula);
+       // printf("%s\n", ele);
         lens = strlen(ele);
-        if(ele[0] == target){
-            for(j = 3; j < lens; ++j){
-                if(isTer(ele[j])){
-                    firstSET[seti][strlen[firstSET[seti]]] = ele[j];
-                    break;
-                }
-                else{
-                    findFIRST(ele[j]);
-                    lenf = strlen(firstSET[isNoTer(ele[j])]);
-                    for(k = 0; k < lenf; ++k){
-                        if(firstSET[isNoTer(ele[j])][k] == '$'){
-                            tag1 ++;
-                        }else{
-                            firstSET[seti][strlen[firstSET[seti]]] = firstSET[isNoTer(ele[j])][k];
-                        }
-                    }
-                    if(tag1 == 0){
-                        break;
-                    }else{
-                        tag += tag1;
-                        tag1 = 0;
-                    }
-                }
+        if(ele[0] == target){ 
+			/*如果产生式右部第一个字符为终结符，则将其纳入左部的first集合*/       	
+        	if(isTer(ele[3])){
+               //	printf("%d %c\n", i, ele[3]);
+                firstSET[seti][strlen(firstSET[seti])] = ele[3];
             }
-            if(tag == lens - 3){
-                firstSET[seti][strlen[firstSET[seti]]] = '$';
-            }
+            /*否则求出相应非终结符的first集，将其加入到seti对应的first集*/ 
+            else {
+				for(j = 3; j < lens; ++j){   	
+				    //printf("%c", ele[j]);
+				    temp = ele[j];
+				    if(isTer(temp)) {
+                		firstSET[seti][strlen(firstSET[seti])] = ele[j];
+                		break;
+                	}
+                	findFirst(temp);
+                	//printf("%d", isNoTer(temp)); 
+                	lenf = strlen(firstSET[isNoTer(temp)]);
+                	//printf("%d %s\n",lenf, firstSET[isNoTer(ele[j])]);
+                	
+                	for(k = 0; k < lenf; ++k){
+	                    if(firstSET[isNoTer(temp)][k] == '$'){
+    	                    tag1 = 1;
+        	            }else{
+        	            	//printf("%c\n", firstSET[isNoTer(ele[j])][k]);
+   	                        firstSET[seti][strlen(firstSET[seti])] = firstSET[isNoTer(temp)][k];
+                   	    }
+                	}
+                	if(tag1 == 0){
+                   		break;
+                	}else{
+                    	tag += tag1;
+                    	tag1 = 0;
+                	}
+            	}
+            	if(tag == lens - 3){
+            		firstSET[seti][strlen(firstSET[seti])] = '$';
+        		}
+        	}        	
         }
     }
+    trim(firstSET[seti]);
     return 0;
 }
 
 int main(){
-    
-//    freopen("product.txt", "r", stdin);
-//    freopen("output.txt", "a", stdout);
+    int i, j, k;
+    freopen("product.txt", "r", stdin);
+    freopen("output.txt", "w", stdout);
     initana();
-    strcpy(terSymbol, "ABEFT");
-    strcpy(non_ter, "$*i()");
+    strcpy(terSymbol, "$*i()+");
+    strcpy(non_ter, "ABEFT");
     pro_num = prod();
     
+//    for(i = 0; i < strlen(terSymbol); ++i){
+//    	printf("%c的first集是: %s\n", terSymbol[i], firstSET[i]);
+//    }
     
+    for(i = 0; i < strlen(non_ter); ++i){
+    	//printf("%c\n",non_ter[i]);
+    	findFirst(non_ter[i]);
+    }
+    
+    for(i = 0; i < strlen(non_ter); ++i){
+    	printf("%c的first集是: %s\n", non_ter[i], firstSET[i]);
+    }
+    
+    printf("===================================\n");
     return 0;
 }
